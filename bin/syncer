@@ -1,0 +1,113 @@
+#!/bin/bash
+
+## NOTE:
+## 	backups are local and create dated directories..
+## 	push just sends a path to a remote system
+## 	pull just grabs a path from a remote system and copies local
+##
+## script name determines the operation: backup.sync, push.sync, pull.sync
+
+me="$(basename $0)"
+mydir=$(dirname "$0")
+
+if [ -z "$1" -o "$1" = "-h" ] ; then
+	echo "usage: $me <config>"
+	exit
+fi
+
+config="$1"
+excludefile="${config%.config}.excludes"
+configdir=$(dirname $config)
+. $config
+
+. ${mydir}/syncer.config
+
+
+##############################################################################
+
+if [ ! -z "$srcuser" ] ; then
+	srcuser="${srcuser}@"
+fi
+
+if [ ! -z "$dstuser" ] ; then
+	dstuser="${dstuser}@"
+fi
+
+if [ ! -z "$srchost" ] ; then
+	srchost="${srchost}:"
+fi
+
+if [ ! -z "$dsthost" ] ; then
+	dsthost="${dsthost}:"
+fi
+
+dst="${dstuser}${dsthost}${dstpath}"
+src="${srcuser}${srchost}${srcpath}"
+
+
+if [ ! -z "$excludefile" -a -f "$excludefile" ] ; then
+	rsyncopts="$rsyncopts --exclude-from=$excludefile"
+fi
+
+if [ "$DELETE" = "yes" ] ; then
+	rsyncopts="$rsyncopts --delete --delete-excluded"
+fi
+
+case $me in
+	backup.sync)
+		D=$(date +%Y%m%d-%H%M%Z)
+
+		dsttop="${BACKUPTOP}/${backdir}"
+
+		if [ ! -d "$dsttop" ] ; then
+			echo "Please make $dsttop first"
+			exit
+		fi
+
+		pushd $dsttop
+
+		if [ -h current ] ; then
+			#last=$(ls -ld current | awk '{print $11}')
+			#LINKDEST="--link-dest=$last"
+			#LINKDEST="--link-dest=${dsttop}/current"
+			linkpath="${dsttop}/current/${srcpath}"
+			x1="//"
+			x2="/"
+			linkpath="${linkpath/$x1/$x2}"
+			LINKDEST="--link-dest=${linkpath}"
+		else
+			LINKDEST=""
+		fi
+
+		dst="${dsttop}/${D}/${srcpath}"
+		x1="//"
+		x2="/"
+		dst="${dst/$x1/$x2}"
+
+		if [ ! -z "$SHOWEXIT" ] ; then
+			echo mkdir -p "$dst"
+			echo rsync $DRYRUN $rsyncopts $LINKDEST "$src" "$dst"
+			echo rm -f current
+			echo ln -sf "$D" "current"
+			exit
+		fi
+
+		set -x
+		mkdir -p "$dst"
+		rsync $DRYRUN $rsyncopts $LINKDEST "$src" "$dst"
+		rm -f current
+		ln -sf "$D" "current"
+		set +x
+		popd
+		;;
+	push.sync)
+		rsync $DRYRUN $rsyncopts "$src" "$dst"
+		;;
+	pull.sync)
+		echo "not implemented"
+		;;
+	*)
+		echo "unknown"
+		exit 1
+		;;
+esac

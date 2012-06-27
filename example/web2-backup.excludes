@@ -1,0 +1,10 @@
+/proc/
+/dev/
+/tmp/
+/var/lib/nfs/
+/sys/
+/dev/shm/
+/mnt/
+/home/dal-backup/
+/home/roberth/
+*/logs/*
