@@ -16,3 +16,9 @@ syncer.config has the top level directory for backups as well as the normal rsyn
 see examples/ directory for config and exclude files
 
 Add DELETE=yes to have --delete and --delete-excluded added
+
+## SEE ALSO
+
+For a nicer backup solution try
+
+https://github.com/wwalker/hlrb
